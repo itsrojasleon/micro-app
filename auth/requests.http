@@ -1,0 +1,27 @@
+# Helper file to test endpoints inside current auth service
+
+# Register an user
+POST http://localhost:8000/auth/signup HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "password": "password"
+}
+
+###
+
+# Log in an user
+POST http://localhost:8000/auth/signin HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "password": "password"
+}
+
+###
+
+# Get the current user
+GET http://localhost:8000/auth/currentuser HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE2NDIyNjgzNjAsImlhdCI6MTY0MjA5NTU2MCwiaXNzIjoiYXV0aC1zZXJ2aWNlIn0.r79Dm-7MEhSDwRG_VJ4JODu5UaS_6haAA1uVrtzpmWc
