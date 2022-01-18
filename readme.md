@@ -1,3 +1,3 @@
-Reserve
+# Micro App
 
-NATS Jetstream, Go, Node, Svelte and more
+Microservices application to develop some skills with the following stack: NATS Jetstream, Go, Node, Svelte and more

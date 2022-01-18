@@ -9,8 +9,8 @@ import (
 
 var DB *gorm.DB
 
-func ConnectToDatabase() {
-	db, err := gorm.Open(sqlite.Open("test.db"))
+func ConnectToDatabase(dbname string) {
+	db, err := gorm.Open(sqlite.Open(dbname))
 	if err != nil {
 		log.Fatal(err)
 	}

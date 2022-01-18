@@ -5,6 +5,7 @@ export const api = axios.create({
   baseURL: '/auth'
 });
 
+// For every single request try to get stored token
 api.interceptors.request.use(async (config) => {
   try {
     const token = await localStorage.getItem('access_token');

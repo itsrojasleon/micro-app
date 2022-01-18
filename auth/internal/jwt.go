@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	// "github.com/rojasleon/reserve-micro/auth/models"
 )
 
 type authClaims struct {

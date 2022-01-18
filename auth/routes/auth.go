@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,13 +26,18 @@ func InitAuthRouter(r *gin.Engine) {
 	}
 }
 
+// type IncomingUser struct {
+// 	Email    string `json:"email" validate:"required,email"`
+// 	Password string `json:"password" validate:"required,min=6,max=50"`
+// }
+
 func signup(c *gin.Context) {
-	user := models.User{}
+	var user models.User
 
 	// Populate user data
 	if err := c.BindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Wrong params",
+			"error": err,
 		})
 		return
 	}
@@ -49,14 +55,34 @@ func signup(c *gin.Context) {
 	existingUser := models.User{}
 
 	err := models.DB.First(&existingUser, "email = ?", user.Email).Error
+	fmt.Println(err)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "User already exists",
+			"message":    "User already exists",
+			"statusCode": http.StatusBadRequest,
 		})
 		return
 	}
 
 	models.DB.Create(&user)
+
+	js, err := internal.GetJetstream(internal.NatsConn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message":    "NATS jetstream failed",
+			"statusCode": http.StatusInternalServerError,
+		})
+		return
+	}
+
+	_, err = js.PublishAsync("USERS.created", []byte(user.Email))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message":    "Failed publishing event" + err.Error(),
+			"statusCode": http.StatusInternalServerError,
+		})
+		return
+	}
 
 	// Generate JWT
 	token, err := internal.GenerateJWT(user.Email)
@@ -78,7 +104,8 @@ func signin(c *gin.Context) {
 
 	if err := c.BindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Internal error",
+			"message":    err.Error(),
+			"statusCode": http.StatusBadRequest,
 		})
 		return
 	}
@@ -87,7 +114,8 @@ func signin(c *gin.Context) {
 
 	if err := validate.Struct(user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
+			"message":    err.Error(),
+			"statusCode": http.StatusBadRequest,
 		})
 		return
 	}
@@ -97,7 +125,8 @@ func signin(c *gin.Context) {
 	err := models.DB.First(&existingUser, "email = ?", user.Email).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "User does not exist",
+			"message":    "User does not exist",
+			"statusCode": http.StatusBadRequest,
 		})
 		return
 	}
@@ -106,14 +135,15 @@ func signin(c *gin.Context) {
 	token, err := internal.GenerateJWT(user.Email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Something went wrong",
+			"message":    "Something went wrong",
+			"statusCode": http.StatusBadRequest,
 		})
 		return
 	}
 	c.Header("Authorization", token)
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "OK",
+		"createdUser": user.Email,
 	})
 }
 
@@ -122,7 +152,7 @@ func currentUser(c *gin.Context) {
 
 	if auth == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"currentUser": "null",
+			"currentUser": nil,
 		})
 		return
 	}
@@ -132,7 +162,7 @@ func currentUser(c *gin.Context) {
 
 	if claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"currentUser": "null",
+			"currentUser": nil,
 		})
 		return
 	}
