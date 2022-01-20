@@ -8,3 +8,6 @@ test.db
 test-dev.db
 .env
 .env.dev
+
+auth/main
+mail/main
